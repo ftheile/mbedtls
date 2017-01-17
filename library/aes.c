@@ -853,10 +853,10 @@ int mbedtls_aes_crypt_ecb( mbedtls_aes_context *ctx,
 #endif
 
     if( mode == MBEDTLS_AES_ENCRYPT )
-if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
+#if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
         mbedtls_aes_encrypt( ctx, input, output );
 #else
-        return( MBEDTLS_OPERATION_NONE );
+        return( MBEDTLS_ERR_AES_ILLEGAL_OPERATION );
 #endif
     else
         mbedtls_aes_decrypt( ctx, input, output );
