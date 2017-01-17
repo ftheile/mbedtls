@@ -127,6 +127,7 @@ static const unsigned char FSb[256] =
     0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16
 };
 
+#if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
 /*
  * Forward tables
  */
@@ -214,6 +215,7 @@ static const uint32_t FT3[256] = { FT };
 #undef V
 
 #undef FT
+#endif /* MBEDTLS_AES_DISABLE_ENCRYPTION */
 
 /*
  * Reverse S-box
@@ -358,10 +360,13 @@ static const uint32_t RCON[10] =
  * Forward S-box & tables
  */
 static unsigned char FSb[256];
+
+#if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
 static uint32_t FT0[256];
 static uint32_t FT1[256];
 static uint32_t FT2[256];
 static uint32_t FT3[256];
+#endif /* MBEDTLS_AES_DISABLE_ENCRYPTION */
 
 /*
  * Reverse S-box & tables
@@ -439,7 +444,7 @@ static void aes_gen_tables( void )
         x = FSb[i];
         y = XTIME( x ) & 0xFF;
         z =  ( y ^ x ) & 0xFF;
-
+#if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
         FT0[i] = ( (uint32_t) y       ) ^
                  ( (uint32_t) x <<  8 ) ^
                  ( (uint32_t) x << 16 ) ^
@@ -448,7 +453,7 @@ static void aes_gen_tables( void )
         FT1[i] = ROTL8( FT0[i] );
         FT2[i] = ROTL8( FT1[i] );
         FT3[i] = ROTL8( FT2[i] );
-
+#endif /* MBEDTLS_AES_DISABLE_ENCRYPTION */
         x = RSb[i];
 
         RT0[i] = ( (uint32_t) MUL( 0x0E, x )       ) ^
@@ -709,6 +714,7 @@ exit:
 /*
  * AES-ECB block encryption
  */
+#if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
 #if !defined(MBEDTLS_AES_ENCRYPT_ALT)
 void mbedtls_aes_encrypt( mbedtls_aes_context *ctx,
                           const unsigned char input[16],
@@ -762,6 +768,7 @@ void mbedtls_aes_encrypt( mbedtls_aes_context *ctx,
     PUT_UINT32_LE( X3, output, 12 );
 }
 #endif /* !MBEDTLS_AES_ENCRYPT_ALT */
+#endif /* !MBEDTLS_AES_DISABLE_ENCRYPTION */
 
 /*
  * AES-ECB block decryption
@@ -846,7 +853,11 @@ int mbedtls_aes_crypt_ecb( mbedtls_aes_context *ctx,
 #endif
 
     if( mode == MBEDTLS_AES_ENCRYPT )
+if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
         mbedtls_aes_encrypt( ctx, input, output );
+#else
+        return( MBEDTLS_OPERATION_NONE );
+#endif
     else
         mbedtls_aes_decrypt( ctx, input, output );
 

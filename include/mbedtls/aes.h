@@ -109,7 +109,7 @@ int mbedtls_aes_setkey_dec( mbedtls_aes_context *ctx, const unsigned char *key,
  * \param input    16-byte input block
  * \param output   16-byte output block
  *
- * \return         0 if successful
+ * \return         0 if successful, or MBEDTLS_OPERATION_NONE if operation is not supported
  */
 int mbedtls_aes_crypt_ecb( mbedtls_aes_context *ctx,
                     int mode,
@@ -245,6 +245,7 @@ int mbedtls_aes_crypt_ctr( mbedtls_aes_context *ctx,
                        unsigned char *output );
 #endif /* MBEDTLS_CIPHER_MODE_CTR */
 
+#if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
 /**
  * \brief           Internal AES block encryption function
  *                  (Only exposed to allow overriding it,
@@ -257,6 +258,7 @@ int mbedtls_aes_crypt_ctr( mbedtls_aes_context *ctx,
 void mbedtls_aes_encrypt( mbedtls_aes_context *ctx,
                           const unsigned char input[16],
                           unsigned char output[16] );
+#endif /* MBEDTLS_AES_DISABLE_ENCRYPTION */
 
 /**
  * \brief           Internal AES block decryption function
