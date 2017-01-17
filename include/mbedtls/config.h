@@ -286,6 +286,13 @@
 //#define MBEDTLS_AES_DECRYPT_ALT
 
 /**
+ * \def MBEDTLS_AES_DISABLE_ENCRYPTION
+ *
+ * MBEDTLS_AES_DISABLE_ENCRYPTION: Uncomment to disable AES encryption functions.
+ */
+// MBEDTLS_AES_DISABLE_ENCRYPTION
+
+/**
  * \def MBEDTLS_TEST_NULL_ENTROPY
  *
  * Enables testing and use of mbed TLS without any configured entropy sources.
