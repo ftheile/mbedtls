@@ -290,7 +290,7 @@
  *
  * MBEDTLS_AES_DISABLE_ENCRYPTION: Uncomment to disable AES encryption functions.
  */
-// MBEDTLS_AES_DISABLE_ENCRYPTION
+// #define MBEDTLS_AES_DISABLE_ENCRYPTION
 
 /**
  * \def MBEDTLS_TEST_NULL_ENTROPY
