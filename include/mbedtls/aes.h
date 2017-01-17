@@ -38,6 +38,7 @@
 
 #define MBEDTLS_ERR_AES_INVALID_KEY_LENGTH                -0x0020  /**< Invalid key length. */
 #define MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH              -0x0022  /**< Invalid data input length. */
+#define MBEDTLS_ERR_AES_ILLEGAL_OPERATION                 -0x0023
 
 #if !defined(MBEDTLS_AES_ALT)
 // Regular implementation
@@ -109,7 +110,7 @@ int mbedtls_aes_setkey_dec( mbedtls_aes_context *ctx, const unsigned char *key,
  * \param input    16-byte input block
  * \param output   16-byte output block
  *
- * \return         0 if successful, or MBEDTLS_OPERATION_NONE if operation is not supported
+ * \return         0 if successful, or MBEDTLS_ERR_AES_ILLEGAL_OPERATION if operation is not supported
  */
 int mbedtls_aes_crypt_ecb( mbedtls_aes_context *ctx,
                     int mode,
