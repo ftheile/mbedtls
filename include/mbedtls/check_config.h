@@ -150,6 +150,10 @@
 #error "MBEDTLS_GCM_C defined, but not all prerequisites"
 #endif
 
+#if defined(MBEDTLS_AES_ENCRYPT_ALT) && defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
+#error "MBEDTLS_AES_ENCRYPT_ALT defined, but encryption is disabled"
+#endif
+
 #if defined(MBEDTLS_HAVEGE_C) && !defined(MBEDTLS_TIMING_C)
 #error "MBEDTLS_HAVEGE_C defined, but not all prerequisites"
 #endif
