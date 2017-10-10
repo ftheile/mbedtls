@@ -406,8 +406,8 @@ static int aes_init_done = 0;
 static void aes_gen_tables( void )
 {
     int i, x, y, z;
-    int pow[256];
-    int log[256];
+    unsigned char pow[256];
+    unsigned char log[256];
 
     /*
      * compute pow and log tables over GF(2^8)
@@ -762,9 +762,9 @@ exit:
  */
 #if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
 #if !defined(MBEDTLS_AES_ENCRYPT_ALT)
-void mbedtls_aes_encrypt( mbedtls_aes_context *ctx,
-                          const unsigned char input[16],
-                          unsigned char output[16] )
+int mbedtls_internal_aes_encrypt( mbedtls_aes_context *ctx,
+                                  const unsigned char input[16],
+                                  unsigned char output[16] )
 {
     int i;
     uint32_t *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
@@ -812,17 +812,26 @@ void mbedtls_aes_encrypt( mbedtls_aes_context *ctx,
     PUT_UINT32_LE( X1, output,  4 );
     PUT_UINT32_LE( X2, output,  8 );
     PUT_UINT32_LE( X3, output, 12 );
+
+    return( 0 );
 }
 #endif /* !MBEDTLS_AES_ENCRYPT_ALT */
+
+void mbedtls_aes_encrypt( mbedtls_aes_context *ctx,
+                          const unsigned char input[16],
+                          unsigned char output[16] )
+{
+    mbedtls_internal_aes_encrypt( ctx, input, output );
+}
 #endif /* !MBEDTLS_AES_DISABLE_ENCRYPTION */
 
 /*
  * AES-ECB block decryption
  */
 #if !defined(MBEDTLS_AES_DECRYPT_ALT)
-void mbedtls_aes_decrypt( mbedtls_aes_context *ctx,
-                          const unsigned char input[16],
-                          unsigned char output[16] )
+int mbedtls_internal_aes_decrypt( mbedtls_aes_context *ctx,
+                                  const unsigned char input[16],
+                                  unsigned char output[16] )
 {
     int i;
     uint32_t *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
@@ -870,8 +879,17 @@ void mbedtls_aes_decrypt( mbedtls_aes_context *ctx,
     PUT_UINT32_LE( X1, output,  4 );
     PUT_UINT32_LE( X2, output,  8 );
     PUT_UINT32_LE( X3, output, 12 );
+
+    return( 0 );
 }
 #endif /* !MBEDTLS_AES_DECRYPT_ALT */
+
+void mbedtls_aes_decrypt( mbedtls_aes_context *ctx,
+                          const unsigned char input[16],
+                          unsigned char output[16] )
+{
+    mbedtls_internal_aes_decrypt( ctx, input, output );
+}
 
 /*
  * AES-ECB block encryption/decryption
@@ -900,14 +918,12 @@ int mbedtls_aes_crypt_ecb( mbedtls_aes_context *ctx,
 
     if( mode == MBEDTLS_AES_ENCRYPT )
 #if !defined(MBEDTLS_AES_DISABLE_ENCRYPTION)
-        mbedtls_aes_encrypt( ctx, input, output );
+        return( mbedtls_internal_aes_encrypt( ctx, input, output ) );
 #else
         return( MBEDTLS_ERR_AES_ILLEGAL_OPERATION );
 #endif
     else
-        mbedtls_aes_decrypt( ctx, input, output );
-
-    return( 0 );
+        return( mbedtls_internal_aes_decrypt( ctx, input, output ) );
 }
 
 #if defined(MBEDTLS_CIPHER_MODE_CBC)
