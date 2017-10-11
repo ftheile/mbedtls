@@ -38,7 +38,7 @@
 
 #define MBEDTLS_ERR_AES_INVALID_KEY_LENGTH                -0x0020  /**< Invalid key length. */
 #define MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH              -0x0022  /**< Invalid data input length. */
-#define MBEDTLS_ERR_AES_ILLEGAL_OPERATION                 -0x0023
+#define MBEDTLS_ERR_AES_ILLEGAL_OPERATION                 -0x0023  /**< Illegal operation. */
 
 #if ( defined(__ARMCC_VERSION) || defined(_MSC_VER) ) && \
     !defined(inline) && !defined(__cplusplus)
@@ -266,7 +266,7 @@ int mbedtls_aes_crypt_ctr( mbedtls_aes_context *ctx,
 int mbedtls_internal_aes_encrypt( mbedtls_aes_context *ctx,
                                   const unsigned char input[16],
                                   unsigned char output[16] );
-#endif /* MBEDTLS_AES_DISABLE_ENCRYPTION */
+#endif /* !MBEDTLS_AES_DISABLE_ENCRYPTION */
 
 /**
  * \brief           Internal AES block decryption function
