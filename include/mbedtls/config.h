@@ -336,6 +336,7 @@
  * MBEDTLS_AES_DISABLE_ENCRYPTION: Uncomment to disable AES encryption functions.
  */
 // #define MBEDTLS_AES_DISABLE_ENCRYPTION
+
 /**
  * \def MBEDTLS_ECP_INTERNAL_ALT
  *
