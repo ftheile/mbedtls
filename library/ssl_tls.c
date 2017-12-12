@@ -3493,8 +3493,15 @@ static int ssl_parse_record_header( mbedtls_ssl_context *ssl )
         ssl->in_msgtype != MBEDTLS_SSL_MSG_APPLICATION_DATA )
     {
         MBEDTLS_SSL_DEBUG_MSG( 1, ( "unknown record type" ) );
-        mbedtls_ssl_send_alert_message( ssl, MBEDTLS_SSL_ALERT_LEVEL_FATAL,
-                                        MBEDTLS_SSL_ALERT_MSG_UNEXPECTED_MESSAGE );
+
+#if defined(MBEDTLS_SSL_PROTO_DTLS)
+        /* Silently ignore invalid DTLS records as recommended by RFC 6347
+         * Section 4.1.2.7 */
+        if( ssl->conf->transport != MBEDTLS_SSL_TRANSPORT_DATAGRAM )
+#endif /* MBEDTLS_SSL_PROTO_DTLS */
+            mbedtls_ssl_send_alert_message( ssl, MBEDTLS_SSL_ALERT_LEVEL_FATAL,
+                                    MBEDTLS_SSL_ALERT_MSG_UNEXPECTED_MESSAGE );
+
         return( MBEDTLS_ERR_SSL_INVALID_RECORD );
     }
 
@@ -6180,7 +6187,6 @@ int mbedtls_ssl_set_hostname( mbedtls_ssl_context *ssl, const char *hostname )
 
     /* Check if new hostname is valid before
      * making any change to current one */
-
     if( hostname != NULL )
     {
         hostname_len = strlen( hostname );
@@ -6207,7 +6213,6 @@ int mbedtls_ssl_set_hostname( mbedtls_ssl_context *ssl, const char *hostname )
     else
     {
         ssl->hostname = mbedtls_calloc( 1, hostname_len + 1 );
-
         if( ssl->hostname == NULL )
             return( MBEDTLS_ERR_SSL_ALLOC_FAILED );
 
@@ -6878,7 +6883,6 @@ int mbedtls_ssl_read( mbedtls_ssl_context *ssl, unsigned char *buf, size_t len )
             }
         }
 
-#if defined(MBEDTLS_SSL_RENEGOTIATION)
         if( ssl->in_msgtype == MBEDTLS_SSL_MSG_HANDSHAKE )
         {
             MBEDTLS_SSL_DEBUG_MSG( 1, ( "received handshake message" ) );
@@ -6920,12 +6924,35 @@ int mbedtls_ssl_read( mbedtls_ssl_context *ssl, unsigned char *buf, size_t len )
             }
 #endif /* MBEDTLS_SSL_SRV_C */
 
+#if defined(MBEDTLS_SSL_RENEGOTIATION)
             /* Determine whether renegotiation attempt should be accepted */
+            if( ! ( ssl->conf->disable_renegotiation == MBEDTLS_SSL_RENEGOTIATION_DISABLED ||
+                    ( ssl->secure_renegotiation == MBEDTLS_SSL_LEGACY_RENEGOTIATION &&
+                      ssl->conf->allow_legacy_renegotiation ==
+                                                   MBEDTLS_SSL_LEGACY_NO_RENEGOTIATION ) ) )
+            {
+                /*
+                 * Accept renegotiation request
+                 */
 
-            if( ssl->conf->disable_renegotiation == MBEDTLS_SSL_RENEGOTIATION_DISABLED ||
-                ( ssl->secure_renegotiation == MBEDTLS_SSL_LEGACY_RENEGOTIATION &&
-                  ssl->conf->allow_legacy_renegotiation ==
-                                                MBEDTLS_SSL_LEGACY_NO_RENEGOTIATION ) )
+                /* DTLS clients need to know renego is server-initiated */
+#if defined(MBEDTLS_SSL_PROTO_DTLS)
+                if( ssl->conf->transport == MBEDTLS_SSL_TRANSPORT_DATAGRAM &&
+                    ssl->conf->endpoint == MBEDTLS_SSL_IS_CLIENT )
+                {
+                    ssl->renego_status = MBEDTLS_SSL_RENEGOTIATION_PENDING;
+                }
+#endif
+                ret = ssl_start_renegotiation( ssl );
+                if( ret != MBEDTLS_ERR_SSL_WAITING_SERVER_HELLO_RENEGO &&
+                    ret != 0 )
+                {
+                    MBEDTLS_SSL_DEBUG_RET( 1, "ssl_start_renegotiation", ret );
+                    return( ret );
+                }
+            }
+            else
+#endif /* MBEDTLS_SSL_RENEGOTIATION */
             {
                 /*
                  * Refuse renegotiation
@@ -6963,31 +6990,10 @@ int mbedtls_ssl_read( mbedtls_ssl_context *ssl, unsigned char *buf, size_t len )
                     return( MBEDTLS_ERR_SSL_INTERNAL_ERROR );
                 }
             }
-            else
-            {
-                /*
-                 * Accept renegotiation request
-                 */
-
-                /* DTLS clients need to know renego is server-initiated */
-#if defined(MBEDTLS_SSL_PROTO_DTLS)
-                if( ssl->conf->transport == MBEDTLS_SSL_TRANSPORT_DATAGRAM &&
-                    ssl->conf->endpoint == MBEDTLS_SSL_IS_CLIENT )
-                {
-                    ssl->renego_status = MBEDTLS_SSL_RENEGOTIATION_PENDING;
-                }
-#endif
-                ret = ssl_start_renegotiation( ssl );
-                if( ret != MBEDTLS_ERR_SSL_WAITING_SERVER_HELLO_RENEGO &&
-                    ret != 0 )
-                {
-                    MBEDTLS_SSL_DEBUG_RET( 1, "ssl_start_renegotiation", ret );
-                    return( ret );
-                }
-            }
 
             return( MBEDTLS_ERR_SSL_WANT_READ );
         }
+#if defined(MBEDTLS_SSL_RENEGOTIATION)
         else if( ssl->renego_status == MBEDTLS_SSL_RENEGOTIATION_PENDING )
         {
             if( ssl->conf->renego_max_records >= 0 )
@@ -7073,7 +7079,9 @@ static int ssl_write_real( mbedtls_ssl_context *ssl,
     int ret;
 #if defined(MBEDTLS_SSL_MAX_FRAGMENT_LENGTH)
     size_t max_len = mbedtls_ssl_get_max_frag_len( ssl );
-
+#else
+    size_t max_len = MBEDTLS_SSL_MAX_CONTENT_LEN;
+#endif /* MBEDTLS_SSL_MAX_FRAGMENT_LENGTH */
     if( len > max_len )
     {
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
@@ -7088,7 +7096,6 @@ static int ssl_write_real( mbedtls_ssl_context *ssl,
 #endif
             len = max_len;
     }
-#endif /* MBEDTLS_SSL_MAX_FRAGMENT_LENGTH */
 
     if( ssl->out_left != 0 )
     {
@@ -7119,7 +7126,7 @@ static int ssl_write_real( mbedtls_ssl_context *ssl,
  *
  * With non-blocking I/O, ssl_write_real() may return WANT_WRITE,
  * then the caller will call us again with the same arguments, so
- * remember wether we already did the split or not.
+ * remember whether we already did the split or not.
  */
 #if defined(MBEDTLS_SSL_CBC_RECORD_SPLITTING)
 static int ssl_write_split( mbedtls_ssl_context *ssl,
